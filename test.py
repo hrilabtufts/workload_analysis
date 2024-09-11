@@ -1,0 +1,99 @@
+from argparse import ArgumentParser
+from os.path import exists, isfile
+from PCPS import PCPS
+
+parser = ArgumentParser(description='Script for testing pcps workload analysis')
+parser.add_argument('eye_tracking_raw', type=str, help='The Eye_Tracking_Raw.csv to process')
+parser.add_argument('eye_tracking_events', type=str, help='The Eye_Tracking_Events.csv to process')
+parser.add_argument('--threshold', '-t', type=float, default=-1.0, help='Threshold value (default: -1.0)')
+parser.add_argument('--seconds', '-s', type=int, default=30, help='Period, in seconds, over which to average pupil size (default: 30)')
+args = parser.parse_args()
+
+
+if not exists(args.eye_tracking_raw) :
+    print(f'ERROR: File {args.eye_tracking_raw} does not exist')
+    exit(1)
+
+if not isfile(args.eye_tracking_raw) :
+    print(f'ERROR: {args.eye_tracking_raw} is not a file')
+    exit(2)
+
+if not exists(args.eye_tracking_events) :
+    print(f'ERROR: File {args.eye_tracking_events} does not exist')
+    exit(3)
+
+if not isfile(args.eye_tracking_events) :
+    print(f'ERROR: {args.eye_tracking_events} is not a file')
+    exit(4)
+
+pcps = PCPS()
+pcps.setThreshold(args.threshold)
+
+calibration_steps=[]
+with open(args.eye_tracking_events, 'r') as file :
+    for l in file:
+        line = l.strip()
+        cols = line.split(',')
+        if cols[2].startswith('pupil_calibration_') :
+            if '_started' in cols[2] :
+                continue
+            parts = cols[2].split('_')
+            if parts[2] == '0' :
+            	continue
+            if parts[2] == 'ended' :
+            	parts[2] = '270'
+            calibration_step = {
+                'time' : float(cols[0]),
+                'step' : int(parts[2]) - 15
+            }
+            calibration_steps.append(calibration_step)
+
+pupil_at_incrementation = []
+with open(args.eye_tracking_raw, 'r') as file :
+    i = 0
+    for l in file:
+        line = l.strip()
+        if line.startswith('unityClientTimestamp,') :
+            continue
+        cols = line.split(',')
+        if i == len(calibration_steps) :
+            break
+        if float(cols[0]) >= calibration_steps[i]['time'] :
+            pupil = float(cols[15])
+            pupil_at_incrementation.append(pupil)
+            i+=1
+
+pcps.setIncrements(pupil_at_incrementation)
+
+with open(args.eye_tracking_raw, 'r') as file :
+    start_time = -1
+
+    pupil_left_arr = []
+    luminance_arr = []
+
+    for l in file:
+        line = l.strip()
+
+        #unityClientTimestamp,unityClientLocalTimestamp,deviceTimestamp,gazeOriginLeftX,gazeOriginLeftY,gazeOriginLeftZ,gazeOriginRightX,gazeOriginRightY,gazeOriginRightZ,gazeDirectionLeftX,gazeDirectionLeftY,gazeDirectionLeftZ,gazeDirectionRightX,gazeDirectionRightY,gazeDirectionRightZ,pupilDiameterLeft,pupilDiameterRight,eyeOpennessLeft,eyeOpennessRight,pupilPositionLeftX,pupilPositionLeftY,pupilPositionRightX,pupilPositionRightY,luminance
+        if line.startswith('unityClientTimestamp,') :
+            continue
+
+        cols = line.split(',')
+
+        if start_time < 0 :
+            start_time = int(cols[2])
+
+        time = int(cols[2])
+        pupil_left = float(cols[15])
+        luminance = float(cols[23])
+
+        pupil_left_arr.append(pupil_left)
+        luminance_arr.append(luminance)
+        
+        if time - start_time >= args.seconds * 1000 :
+            workload = pcps.calculateWorkload(pupil_left_arr, luminance_arr)
+            print(f'{cols[2]},{workload}')
+
+            pupil_left_arr = []
+            luminance_arr = []
+            start_time = -1
