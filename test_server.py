@@ -54,20 +54,31 @@ with open(args.eye_tracking_events, 'r') as file :
             }
             calibration_steps.append(calibration_step)
 
+raw=[]
 pupil_at_incrementation = []
 with open(args.eye_tracking_raw, 'r') as file :
-    i = 0
     for l in file:
         line = l.strip()
         if line.startswith('unityClientTimestamp,') :
             continue
         cols = line.split(',')
-        if i == len(calibration_steps) :
-            break
-        if float(cols[0]) >= calibration_steps[i]['time'] :
-            pupil = float(cols[15])
-            pupil_at_incrementation.append(pupil)
-            i+=1
+        raw.append([ float(cols[0]), float(cols[15]) ])
+
+c = 0
+for i in range(len(raw)) :
+    cols = raw[i]
+    if c == len(calibration_steps) :
+        break
+    if cols[0] >= calibration_steps[c]['time'] :
+        pupil = cols[1]
+        if pupil < 0 :
+            j = 1
+            while pupil < 0 :
+                pupil = raw[i-j][1]
+                j += 1
+        pupil_at_incrementation.append(pupil)
+        c+=1
+
 pupil_at_incrementation = [str(i) for i in pupil_at_incrementation]
 inc_str = ','.join(pupil_at_incrementation)
 

@@ -1,3 +1,8 @@
 numpy
 scipy
 flask
+torch
+matplotlib
+pandas
+plotly
+imageio
