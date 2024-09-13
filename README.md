@@ -29,7 +29,7 @@ print(workload)
 
 This script will host a Flask server which exposes the following endpoints for calculating workload from a remote service.
 
-`/` - GET for health check (returns 'OK')
-`/threshold` - POST to field "threshold" with value (returns 'OK')
-`/increments` - POST to field "increments" with comma separated string of increments (returns 'OK')
-`/workload` - POST to fields "pupil" and "luminance" with two comma separated strings of pupil sizes and luminance values (returns workload level 0 or 1)
+* `/` - GET for health check (returns 'OK')
+* `/threshold` - POST to field "threshold" with value (returns 'OK')
+* `/increments` - POST to field "increments" with comma separated string of increments (returns 'OK')
+* `/workload` - POST to fields "pupil" and "luminance" with two comma separated strings of pupil sizes and luminance values (returns workload level 0 or 1)
