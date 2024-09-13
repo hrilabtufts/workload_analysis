@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t workload_analysis .
+docker build -t hrilabtufts/workload_analysis .
