@@ -227,18 +227,43 @@ eye_gaze_moving_avg_left = np.convolve(y_padded_left, np.ones((N,))/N, mode='val
 y_padded_right = np.pad(WL_right_eye_gaze_without_lum, (N//2, N-1-N//2), mode='edge')
 eye_gaze_moving_avg_right = np.convolve(y_padded_right, np.ones((N,))/N, mode='valid')
 
-dist = 25; 
+window_size = 50
 
-y1 = WL_left_eye_gaze_preprocessed; y2 = eye_gaze_moving_avg_left; x = np.linspace(0, len(y2), len(y2), endpoint=True);
+# Modify the signal to ignore negative parts
+modified_signal = np.where(eye_gaze_moving_avg_left > 0, eye_gaze_moving_avg_left, 0)
 
-peaks, _ = find_peaks(y2, distance = dist)
-num_peaks = round(len(peaks)*0.1)
+# Compute power of the modified signal
+power = modified_signal**2
+moving_avg_power = np.convolve(power, np.ones(window_size)/window_size, mode='valid')
 
-sorted_index_array = np.argsort(y2[peaks]) 
-sorted_array = peaks[sorted_index_array] 
-selected_peaks = sorted_array[-num_peaks : ] 
-selected_peaks = np.sort(selected_peaks) 
+# Define threshold
+threshold = np.mean(moving_avg_power) + 2 * np.std(moving_avg_power)
 
-threshold = np.min(y2[selected_peaks])
+# Find peaks in the moving average power
+peaks, _ = find_peaks(moving_avg_power, height=threshold)
+
+# Plot results
+plt.figure(figsize=(20, 12))
+
+# Plot time series
+plt.subplot(2, 1, 1)
+plt.plot(eye_gaze_moving_avg_left, label='Original Time Series', color='grey')
+plt.title('Original Time Series', fontsize=24)
+plt.xticks(fontsize=18); plt.yticks(fontsize=18)
+plt.legend()
+
+# Plot moving average power
+plt.subplot(2, 1, 2)
+x_vals = np.arange(window_size-1, len(moving_avg_power)+window_size-1)
+plt.plot(x_vals, moving_avg_power, label='Moving Average Power', color='orange')
+plt.scatter(x_vals[peaks], moving_avg_power[peaks], color='red', label='Detected Peaks', s=100)
+plt.axhline(y=threshold, color='green', linestyle='--', label='Threshold')
+formatter = mpl.ticker.StrMethodFormatter("{x:.0f}")
+plt.title('Moving Average Power with Detected Peaks', fontsize=24)
+plt.xticks(fontsize=18); plt.yticks(fontsize=18)
+plt.legend()
+
+plt.tight_layout()
+plt.show()
 
 print(f'Threshold: {threshold}')
