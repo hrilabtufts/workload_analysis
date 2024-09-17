@@ -3,7 +3,7 @@ from scipy.signal import butter, lfilter
 
 class PCPS :
 	def __init__ (self) :
-		self.N = 100
+		self.N = 150
 		self.max_threshold = None
 		self.increments = None
 		self.predict_luminance = None
@@ -53,7 +53,9 @@ class PCPS :
 			luminance_removed_pupil_left[i] = cleaned_pupil_left[i] - predicted_pupil_left[i]
 		y_padded = np.pad(luminance_removed_pupil_left, (self.N//2, self.N-1-self.N//2), mode='edge')
 		predicted_pupil_left_moving_avg = np.convolve(y_padded, np.ones((self.N,))/self.N, mode='valid')
-		peak_point = np.max(predicted_pupil_left_moving_avg)
+		power = predicted_pupil_left_moving_avg ** 2
+		moving_avg_power = np.convolve(power, np.ones(window_size)/window_size, mode='valid')
+		peak_point = np.max(moving_avg_power)
 		if peak_point > self.max_threshold :
 			return 1
 		else :
