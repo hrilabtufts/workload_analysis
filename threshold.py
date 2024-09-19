@@ -242,6 +242,8 @@ threshold = np.mean(moving_avg_power) + 2 * np.std(moving_avg_power)
 # Find peaks in the moving average power
 peaks, _ = find_peaks(moving_avg_power, height=threshold)
 
+print(f'Threshold: {threshold}')
+
 # Plot results
 plt.figure(figsize=(20, 12))
 
@@ -266,4 +268,4 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-print(f'Threshold: {threshold}')
+
